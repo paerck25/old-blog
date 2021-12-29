@@ -1,7 +1,7 @@
 ---
-title: Hello, World!
+title: 첫 게시글 입니다!
 date: "2021-12-29T23:43"
-description: "Hello World"
+description: "첫 게시글 입니다!"
 ---
 
-자동배포 테스트
+첫 게시글 입니다!
