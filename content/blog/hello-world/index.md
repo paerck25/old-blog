@@ -1,7 +1,7 @@
 ---
-title: 첫 게시글 입니다!
+title: 제목
 date: "2021-12-29T23:43"
-description: "첫 게시글 입니다!"
+description: "상세설명"
 ---
 
-첫 게시글 입니다!
+내용

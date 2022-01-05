@@ -1,9 +1,9 @@
 module.exports = {
   siteMetadata: {
-    title: `기억상자`,
+    title: `데일리 리포트`,
     author: {
       name: `paerck25`,
-      summary: `고민하고 삽질하는 과정에 재미를 느끼고 있습니다.`,
+      summary: ``,
     },
     description: `까먹을까봐 적는 블로그입니다.`,
     siteUrl: `https://paerck25.github.io/`,
