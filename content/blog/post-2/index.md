@@ -18,7 +18,7 @@ description: "쿼리 속도 개선"
 
 ![performance_before](./Images/performance_before.png)
 <small>
-⇧ 로컬 서버에서 측정했을 때
+⇧ 로컬 서버에(개선 전)
 <br>
 (개선 후 배포까지 마치고 작성하는 게시글 이기에 배포 서버 스크린샷은 미처 찍지 못하였습니다..😢)
 </small>
@@ -170,10 +170,10 @@ footer_banners = banner_queryset.filter(Q(banner_type=BannerType.FOOTER))
 브라우저 개발자 도구 네트워크 탭에서도 눈에 띄는 변화가 생겼습니다.<br>
 
 ![performance_after](./Images/performance_after.png)
-<small>⇧ 로컬 서버에서 측정했을 때</small>
+<small>⇧ 로컬 서버(개선 후)</small>
 
 ![deploy_after](./Images/deploy_after.png)
-<small>⇧ 현재 배포 서버에서 측정했을 때</small>
+<small>⇧ 현재 배포(개선 후)</small>
 
 평균 15000ms ~ 15500ms
 
