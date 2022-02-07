@@ -144,12 +144,22 @@ select_related 와 prefatch_related를 사용하여 코드를 변경해보겠습
 ```python
 //예시 코드이며 실제 코드와는 다릅니다.
 
-posts_queryset = Post.object.filter(Q(state=State.ACTIVE)).order_by('-created_at').select_related("author").prefetch_related("categories")
+posts_queryset = (
+    Post.object
+    .filter(Q(state=State.ACTIVE))
+    .order_by('-created_at')
+    .select_related("author")
+    .prefetch_related("categories")
+)
 
 sell_posts = posts_queryset.filter(Q(post_type=PostType.SELL))
 buy_posts = posts_queryset.filter(Q(post_type=PostType.BUY))
 
-banner_queryset = Banner.objects.filter(Q(state=State.ACTIVE)).order_by('-created_at')
+banner_queryset = (
+    Banner.objects
+    .filter(Q(state=State.ACTIVE))
+    .order_by('-created_at')
+)
 
 header_banners = banner_queryset.filter(Q(banner_type=BannerType.HEADER))
 footer_banners = banner_queryset.filter(Q(banner_type=BannerType.FOOTER))
@@ -179,10 +189,6 @@ footer_banners = banner_queryset.filter(Q(banner_type=BannerType.FOOTER))
 
 > 로컬 서버 기준 : 평균 15000ms \~ 15500ms => 평균 2500ms \~ 3500ms<br>
 > 배포 서버 기준 : 평균 3000ms \~ 3500ms => 평균 400ms \~ 500ms
-
-이것만으로도 매우 쾌적해 졌습니다. <br>
-제가 없었을 때에도 서비스는 운영하고 있었는데 이 상태로 어떻게 돌아갔던 것인지..<br>
-제가 왔으니 됐죠! 하하<br>
 
 이것으로 쿼리 속도 개선을 마쳤습니다.<br>
 캐싱은 왜 안된 것 인지 추가로 좀 더 쿼리를 줄일 수는 없는지 공부해 보아야 하지만 파이썬 장고를 처음 써보는 입장에서 매우 만족스럽습니다.<br>
