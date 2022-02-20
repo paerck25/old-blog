@@ -1,5 +1,5 @@
 ---
-title: django 로딩 속도 개선해보기 - 1
+title: django 로딩 속도 개선해보기
 date: "2022-02-06T23:43"
 description: "쿼리 속도 개선"
 ---
