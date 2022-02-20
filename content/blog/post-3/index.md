@@ -4,7 +4,7 @@ date: "2022-02-20T23:05"
 description: "nginx 설정하기"
 ---
 
-![nginx](./Images/NGINX-logo.png)
+![nginx](./images/NGINX-logo.png)
 
 안녕하세요.<br>
 1주일에 게시글 하나씩은 올리려고 다짐했으나..<br>
@@ -32,7 +32,7 @@ product 서버는 배포할 때 2 ~ 3초의 서버 다운이 생기기 때문에
 
 무중단 배포를 구성하기 위해서 nginx의 로드밸런싱 기능을 사용하려고 합니다.<br>
 
-![load_balancer](./Images/load-balancer.png)
+![load_balancer](./images/load-balancer.png)
 
 로드밸런싱이란 외부에서 들어온 요청을 여러 개의 서버로 적절히 나누어서 처리하고, 하나의 서버가 다운이 되면 다른 온라인 서버로 요청을 리디렉션 하는 것이라고 합니다.<br>
 <br>
