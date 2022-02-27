@@ -22,9 +22,9 @@ const BlogPostTemplate = ({ data, location }) => {
                 <br />
                 <br />
                 <hr />
-                <footer>
+                <div style={{ margin: "1.5rem 0" }}>
                     <Bio />
-                </footer>
+                </div>
             </article>
             <nav className="blog-post-nav">
                 <ul

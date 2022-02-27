@@ -79,9 +79,17 @@ body {
     font-family: var(--font-body);
     font-size: var(--fontSize-1);
     color: var(--color-text);
+    background-color: #fafafa;
+}
+
+main {
+    flex: 1;
 }
 
 footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: var(--spacing-6) var(--spacing-0);
 }
 
@@ -239,9 +247,13 @@ a:focus {
 /* Custom classes */
 
 .global-wrapper {
+    display: flex;
+    flex-direction: column;
     margin: var(--spacing-0) auto;
     max-width: var(--maxWidth-wrapper);
     padding: var(--spacing-10) var(--spacing-5);
+    background-color: #ffffff;
+    min-height: 100vh;
 }
 
 .global-wrapper[data-is-root-path="true"] .bio {
