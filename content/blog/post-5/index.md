@@ -1,7 +1,7 @@
 ---
 title: Github Action - 태그, 버전 릴리즈 자동화하기
 date: "2022-03-16T23:00"
-description: "나름 버전 관리를 해보았습니다."
+description: "버전 관리"
 ---
 
 안녕하세요.<br>
