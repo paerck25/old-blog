@@ -6,13 +6,6 @@ description: "nginx 설정하기"
 
 ![nginx](./images/NGINX-logo.png)
 
-안녕하세요.<br>
-1주일에 게시글 하나씩은 올리려고 다짐했으나..<br>
-벌써 2주정도가 지나버렸습니다. 정신 차리겠습니다..<br>
-<br>
-
-## 개요
-
 저희 회사에는 실제로 운영하는 product 서버,<br>
 내부에서 Q/A 하는 용도의 develop 서버가 있습니다.<br>
 <br>
