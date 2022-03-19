@@ -42,7 +42,7 @@ location / {
 package.json의 homepage 라는 필드를 지우면 된다는 스택오버플로우 글을 보고
 
 ```
-"homepage" : ".",
+"homepage" : ".", <<-- 삭제
 ```
 
 이렇게 되어있던 부분을 지워봤더니 React.Lazy를 사용한 채로도 정상 동작이 되었습니다.<br>
