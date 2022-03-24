@@ -132,14 +132,14 @@ post에는 author라는 외래키를 가지고 있고, 다대다 관계에 있�
 예를들어 post 100개를 가져오면 각 post의 외래키 관계인 author도 조회를 해야 하므로 100개의 쿼리를 추가로 호출하게 되고 이는 성능을 저하시킵니다. <br>
 <br>
 이 문제를 해결하기 위해 Eager Loading이라는 방법이 있습니다.<br>
-사전에 미리 필요한 데이터를 가져오는 방식인데, 장고에서는 select_related와 prefatch_related 라는 메소드로 구현해두었습니다.<br>
-[select_related] 와 [prefatch_related]의 차이는 공식문서로~
+사전에 미리 필요한 데이터를 가져오는 방식인데, 장고에서는 select_related와 prefetch_related 라는 메소드로 구현해두었습니다.<br>
+[select_related] 와 [prefetch_related]의 차이는 공식문서로~
 
 [select_related]: https://docs.djangoproject.com/en/4.0/ref/models/querysets/#select-related
-[prefatch_related]: https://docs.djangoproject.com/en/4.0/ref/models/querysets/#prefetch-related
+[prefetch_related]: https://docs.djangoproject.com/en/4.0/ref/models/querysets/#prefetch-related
 
 <br>
-select_related 와 prefatch_related를 사용하여 코드를 변경해보겠습니다.
+select_related 와 prefetch_related를 사용하여 코드를 변경해보겠습니다.
 
 ```python
 //예시 코드이며 실제 코드와는 다릅니다.
