@@ -52,7 +52,7 @@ websocket을 사용해보셨으면 아실법한 이벤트 방식의 통신입니
 
 원래는 location.href를 사용하여 깃허브 로그인 페이지로 이동하고, 로그인을 마치면 등록된 redirect url로 redirect 되면서 같이 딸려오는 querystring으로 code를 얻었지만,<br>
 <br>
-electron에서는 url을 가질수가 없기 때문에, 기존 창에서 로그인을 마치고 redirect를 하면 해당 url은 존재하지 않기 때문에 흰 창이 띄워지고 아무것도 할 수 없어집니다.<br>
+electron에서는 url을 가질수가 없어서 기존 창에서 로그인을 마치고 redirect를 하면 해당 url은 존재하지 않기 때문에 흰 창이 띄워지고 아무것도 할 수 없어집니다.<br>
 <br>
 때문에, 슬랙이나 macOS 기본 Mail 앱을 보면 로그인을 할때 새로운 창을 띄우는 것 처럼, electron으로 깃허브 로그인 페이지 URL를 이벤트와 함께 보내서, 새창을 띄우는 방식으로 code를 얻어보려고 합니다.
 
