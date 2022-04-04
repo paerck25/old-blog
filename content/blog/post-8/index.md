@@ -34,8 +34,8 @@ main process가 백엔드의 역할을 대신하게 됩니다.
 
 ```ts
 //react
-ipcRenderer.on("my_name_is", e => {
-    console.log(`Hello, ${e.name} !`); // "Hello, paerck25 !"
+ipcRenderer.on("my_name_is", (e, arg) => {
+    console.log(`Hello, ${arg.name} !`); // "Hello, paerck25 !"
 });
 ipcRenderer.send("your_name");
 
