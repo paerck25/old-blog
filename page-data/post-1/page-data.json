@@ -1,0 +1,5 @@
+{
+    "componentChunkName": "component---src-templates-blog-post-tsx",
+    "path": "/post-1/",
+    "result": {"data":{"site":{"siteMetadata":{"title":"paerck25.logger"}},"markdownRemark":{"id":"d964fe2f-47cd-515a-bcc1-04fe31153f47","excerpt":"…","html":"<h3>블로그 작성</h3>\n<p>여태까지는 내가 기억하면 되고, 안되면 구글링하면 되는데 굳이..?라는 생각이었습니다.<br>\n하지만 이전에 분명 구글링하면서 해결했던 건데 기억이 안 나고, <br>\n그 해결책을 어디서 봤는지도 기억이 나질 않아 다시 하나씩 뒤져야 하는 상황이 종종 생겼습니다.<br>\n<br>\n한두번 다시 찾는 것은 괜찮지만 이게 10번 100번이 되버린다면..<br>\n이제는 찾았던 거 또 찾지 말고 기록을 하려고 합니다.<br>\n<br>\n글쓰기를 거의 해본 적이 없어 많이 어색하지만,<br>\n꾸준히 노력하겠습니다.</p>","frontmatter":{"title":"블로그 개요","date":"2022-01-29, 11:43 pm","description":"새해(한달지남)를 맞이하여 블로그 포스팅을 시작했습니다."}},"previous":null,"next":{"fields":{"slug":"/post-2/"},"frontmatter":{"title":"django 로딩 속도 개선해보기"}}},"pageContext":{"id":"d964fe2f-47cd-515a-bcc1-04fe31153f47","previousPostId":null,"nextPostId":"94dbd0d7-1642-5284-b0cb-dc4782ad407e"}},
+    "staticQueryHashes": ["2841359383","3257411868"]}

@@ -1,0 +1,1171 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Gatsby Starter Blog RSS Feed]]></title><description><![CDATA[까먹을까봐 적는 블로그입니다.]]></description><link>https://paerck25.github.io</link><generator>GatsbyJS</generator><lastBuildDate>Mon, 04 Apr 2022 08:38:22 GMT</lastBuildDate><item><title><![CDATA[Electron + React - 깃허브 로그인]]></title><description><![CDATA[개요 요즘에 electron + react로 간단한 pc 앱을 만들고 있습니다.
+거기서 github api를 사용하는데,
+react…]]></description><link>https://paerck25.github.io/post-8/</link><guid isPermaLink="false">https://paerck25.github.io/post-8/</guid><pubDate>Tue, 29 Mar 2022 23:15:00 GMT</pubDate><content:encoded>&lt;h2&gt;개요&lt;/h2&gt;
+&lt;p&gt;요즘에 electron + react로 간단한 pc 앱을 만들고 있습니다.&lt;br&gt;
+거기서 github api를 사용하는데,&lt;br&gt;
+react로 만들긴 하지만 웹이 아닌 앱이기 때문에 알고있던 방식을 사용할 수가 없어서 조금 애를 먹었습니다.&lt;br&gt;
+그 삽질에 대한 기록으로, electron의 튜토리얼은 아닙니다!
+&lt;br&gt;&lt;/p&gt;
+&lt;h2&gt;Redirect URL 문제&lt;/h2&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/18382b0f261223bc8f96fe4ab6fa4ea1/0012b/oauth-flow.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 46.835443037974684%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAJCAYAAAAywQxIAAAACXBIWXMAAAsTAAALEwEAmpwYAAABC0lEQVQoz3WSi6qDQAxE9///TiiIVBRUVEQU39ZXygkEvMUbCNHdyWSSrPt8PrIsizRNI+M4St/3UhSFhGEoURRJVVUyTZOAm+dZv4ld1+kZjl3XpdHt+y44icMwKCkOcF1XsYKc1XUtbdvqOQLI4+4PIZUAmjpA53kqAOcbgwTV4ChMHmR3LO5835cgCLSNX/n/2bZt2vqTOWvR5mRmFZ/+wYHH8zyXLMukLEtV7iyBSypbwq/dyY2QttM0Fc/zJEkSHZ0DeByHzoOD1+ulgPf7rQmYzdE6sZafRuMsAUII2B6RbeLWGkuJ41gXY08IIfdx6FKMkP5JgpjIxlHCcyJSBIXcQwb+lxCFX4vEuwpFz+vjAAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;oauth-flow&quot;
+        title=&quot;oauth-flow&quot;
+        src=&quot;/static/18382b0f261223bc8f96fe4ab6fa4ea1/f058b/oauth-flow.png&quot;
+        srcset=&quot;/static/18382b0f261223bc8f96fe4ab6fa4ea1/c26ae/oauth-flow.png 158w,
+/static/18382b0f261223bc8f96fe4ab6fa4ea1/6bdcf/oauth-flow.png 315w,
+/static/18382b0f261223bc8f96fe4ab6fa4ea1/f058b/oauth-flow.png 630w,
+/static/18382b0f261223bc8f96fe4ab6fa4ea1/0012b/oauth-flow.png 661w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;
+보통의 웹에서의 OAuth 방식은 위의 흐름으로 구현을 했었는데,&lt;br&gt;
+electron 앱에서는 빌드된 react 파일을 바로 띄워버리기 때문에, 따로 redirect 주소가 없어서 [2]번에서부터 막혀버렸습니다.&lt;br&gt;
+&lt;br&gt;
+해결책을 찾고자 구글링을 하니, 다른 사람이 만든 라이브러리가 있었지만,
+저는 직접 구현해 보고 싶어서 계속 찾아보았고, 약간 얍삽이(?) 같지만 구현을 해보았습니다.&lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;h2&gt;React와 Electron 사이의 통신&lt;/h2&gt;
+&lt;p&gt;electron은 nodejs,chromium 으로 만들어져 있어,&lt;br&gt;
+간단히 nodejs 부분을 main process라고 하고,&lt;br&gt;
+chromium으로 html,css,js를 사용하여 view를 보여주는 부분을 renderer process 라고 합니다.&lt;br&gt;
+여기서는 react가 renderer process, 프론트 부분에 해당하고,&lt;br&gt;
+main process가 백엔드의 역할을 대신하게 됩니다.&lt;/p&gt;
+&lt;h3&gt;ipcMain, ipcRenderer&lt;/h3&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;ts&quot;&gt;&lt;pre class=&quot;language-ts&quot;&gt;&lt;code class=&quot;language-ts&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;//react&lt;/span&gt;
+ipcRenderer&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;my_name_is&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;e&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; arg&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token builtin&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token template-string&quot;&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;Hello, &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;${&lt;/span&gt;arg&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;name&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt; !&lt;/span&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;// &quot;Hello, paerck25 !&quot;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+ipcRenderer&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;your_name&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;//electron&lt;/span&gt;
+ipcMain&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;your_name&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; e &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    e&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;reply&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;my_name_is&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; name&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;paerck25&quot;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;react와 electron은 electron 내부의 ipcMain, ipcRenderer를 사용하여 서로 통신하는데,&lt;br&gt;
+websocket을 사용해보셨으면 아실법한 이벤트 방식의 통신입니다.&lt;br&gt;&lt;/p&gt;
+&lt;h2&gt;구현&lt;/h2&gt;
+&lt;p&gt;원래는 location.href를 사용하여 깃허브 로그인 페이지로 이동하고, 로그인을 마치면 등록된 redirect url로 redirect 되면서 같이 딸려오는 querystring으로 code를 얻었지만,&lt;br&gt;
+&lt;br&gt;
+electron에서는 url을 가질수가 없어서 기존 창에서 로그인을 마치고 redirect를 하면 해당 url은 존재하지 않기 때문에 흰 창이 띄워지고 아무것도 할 수 없어집니다.&lt;br&gt;
+&lt;br&gt;
+때문에, 슬랙이나 macOS 기본 Mail 앱을 보면 로그인을 할때 새로운 창을 띄우는 것 처럼, electron으로 깃허브 로그인 페이지 URL를 이벤트와 함께 보내서, 새창을 띄우는 방식으로 code를 얻어보려고 합니다.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;tsx&quot;&gt;&lt;pre class=&quot;language-tsx&quot;&gt;&lt;code class=&quot;language-tsx&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;// react&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; electron &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; window&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;electron&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token function&quot;&gt;useEffect&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    electron&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ipcRenderer&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;login-reply&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token parameter&quot;&gt;e&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; any&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; arg&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; AccessToken&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        localStorage&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;setItem&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;token&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token template-string&quot;&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;${&lt;/span&gt;arg&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;access_token&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;navigate&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;navigate&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;/home&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; replace&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token boolean&quot;&gt;true&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;token function-variable function&quot;&gt;githubLogin&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token comment&quot;&gt;// location.href = GET_CODE_URL;&lt;/span&gt;
+    electron&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ipcRenderer&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;login&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        getCodeUrl&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token constant&quot;&gt;GET_CODE_URL&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+        client_id&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token constant&quot;&gt;CLIENT_ID&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+        client_secret&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token constant&quot;&gt;CLIENT_SECRET&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token tag&quot;&gt;&lt;span class=&quot;token tag&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;token class-name&quot;&gt;LoginButton&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token attr-name&quot;&gt;onClick&lt;/span&gt;&lt;span class=&quot;token script language-javascript&quot;&gt;&lt;span class=&quot;token script-punctuation punctuation&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;githubLogin&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;/&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;typescript&quot;&gt;&lt;pre class=&quot;language-typescript&quot;&gt;&lt;code class=&quot;language-typescript&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;// electron.ts&lt;/span&gt;
+
+ipcMain&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;login&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;event&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; arg&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;token constant&quot;&gt;REDIRECT_URL&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;http://localhost/auth?code=&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;token function-variable function&quot;&gt;getAccessToken&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;includes&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token constant&quot;&gt;REDIRECT_URL&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; code &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; url&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token constant&quot;&gt;REDIRECT_URL&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; data &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; axios&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+                &lt;span class=&quot;token string&quot;&gt;&quot;https://github.com/login/oauth/access_token&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+                    code&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; code&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    client_id&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; arg&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;client_id&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    client_secret&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; arg&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;client_secret
+                &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+                    headers&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+                        Accept&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;application/json&quot;&lt;/span&gt;
+                    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+                &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+            &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; win &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;BrowserWindow&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; width&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;600&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; height&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;500&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;token comment&quot;&gt;// arg.getCodeUrl = https://github.com/login/oauth/authorize?....&lt;/span&gt;
+    win&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;loadURL&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;arg&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;getCodeUrl&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;// 깃허브 로그인 창 띄우기&lt;/span&gt;
+
+    win&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;webContents&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;will-navigate&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;e&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;token comment&quot;&gt;// url = https://등록된RedrirectURL?code=....&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; token &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;getAccessToken&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;token&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+            event&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;reply&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;login-reply&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; token&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+            win&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;destroy&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    win&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;webContents&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;did-redirect-navigation&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;e&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;token comment&quot;&gt;// url = https://등록된RedrirectURL?code=....&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; token &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;getAccessToken&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;token&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+            event&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;reply&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;login-reply&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; token&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+            win&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;destroy&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;이렇게 로그인 버튼을 클릭하여 “login” 이벤트로 parameter와 함께 보내면,&lt;br&gt;
+electron에서는 이벤트를 감지해서 getCodeUrl이라는 url의 새 창을 띄웁니다.&lt;br&gt;
+(여기서 getCodeUrl은 깃허브 로그인 페이지 url 입니다.)&lt;br&gt;
+&lt;br&gt;
+그리고 로그인을 마치고 나면 등록된 redirect url로 redirect를 하려고 하는데,&lt;br&gt;
+url을 가질수 없기 때문에 아무것도 없는 흰 화면이 나올 것입니다.&lt;br&gt;
+&lt;br&gt;
+우리는 이때를 감지해서 code를 얻어낼 수 있습니다.&lt;br&gt;
+electron에는 띄운 renderer process의 페이지 이동을 감지하는 이벤트 리스너를 등록할 수 있습니다. “will-navigate”, “did-redirect-navigation” 입니다.&lt;br&gt;
+해당 이벤트들은 2번째 인자로 이동할 페이지의 url을 알려줍니다. 그 url에 등록한 redirect URL과 code가 querystring으로 담겨 있습니다. &lt;br&gt;
+(ex - &lt;code class=&quot;language-text&quot;&gt;https://등록한RedirectURL?code=....&lt;/code&gt;)
+&lt;br&gt;&lt;br&gt;
+왜 이벤트를 2개나 등록을 했냐면, 처음 깃허브 로그인을 하면 “will-navigate” 이벤트로만 감지가 되고, 기존에 깃허브 로그인이 되어있는 상태라면 “did-redirect-navigation” 이벤트로만 감지가 되기 때문입니다.&lt;br&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;“will-navigate” - 사용자 또는 페이지가 탐색을 시작하려고 할 때 발생합니다. window.location개체가 변경되거나 사용자가 페이지의 링크를 클릭 할 때 발생할 수 있습니다 .&lt;br&gt; &gt; &lt;br&gt;
+“did-redirect-navigation” - 탐색 중에 서버 측 리디렉션이 발생한 후 발생합니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;로그인이 되어있는 상태라면, 깃허브 로그인 페이지로 이동하는 와중에(탐색중에) redirect하기 때문에 “did-redirect-navigation”으로만 감지되는 것 같습니다.&lt;/p&gt;
+&lt;p&gt;그렇게 code를 포함한 url을 얻어내서, 맨 위의 getAcessToken 함수에 넣어 사용하면,&lt;br&gt;
+url 문자열을 잘라내 code를 추출하고, 추출한 code와 client_id, client_secret을 사용하여 github로 access_token을 달라고 요청합니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;그리고 새로 띄운 창은 이제 닫고,
+얻은 access_token을 “login-reply” 이벤트와 함께 담아 프론트 단으로 보내면,&lt;br&gt;
+받은 access_token으로 github api를 이용할 수 있게 됐습니다.&lt;br&gt;
+&lt;br&gt;
+글로만 길게 구현 과정을 적었는데, 다시 흐름도를 그려보면 이렇습니다.
+&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/7212cfc0a3632f96b1fdb81e493b26a0/c7dcc/new-oauth-flow.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 75.31645569620254%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAACXBIWXMAAAsTAAALEwEAmpwYAAABcElEQVQ4y32U646CQAyFef83IwH5aRQTgiai4AW844Vuvm5KZtnBJk1mRub0nNOOgXii67o/a9vfbjfJ87zPsixlu93KZrORoiikqioJZCRcIIu2beV8PstqtdLLl8tFiwAG8OPx+AW0iwbi5vP51A8/n4+uAb3f77ofFiSCIcAw9vu9MkjTVGWyPx6PoyT+SUYGsq7XqzRNI+/3W89fr1f/jTH2WRPgARIs1+u1RFEkYRjKfD5XcC6TJhf/OGfvMlVAmCwWCwUCnA9Pp5NKY88lGJFIhelsNtM1Z8a8l+xKJFljvjXDRoOCeEmRuq7VGn4fToY2xST5mgIICpDPvFEIQKSbnxDpJY/Nn2u2u6YwICiZTqcymUwkSRKJ41h2u51/bL6d0XVkk9jhvhZsCL49u7GniESa5YvAd9GYmL8EnV8ulz07a4h57x1s1yfoMxoAAXA4HCTLMt3bGPkUeQFhZ38ExghwOsyaYtblIeAPrMKSCmMJZ4oAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;new-oauth-flow&quot;
+        title=&quot;new-oauth-flow&quot;
+        src=&quot;/static/7212cfc0a3632f96b1fdb81e493b26a0/f058b/new-oauth-flow.png&quot;
+        srcset=&quot;/static/7212cfc0a3632f96b1fdb81e493b26a0/c26ae/new-oauth-flow.png 158w,
+/static/7212cfc0a3632f96b1fdb81e493b26a0/6bdcf/new-oauth-flow.png 315w,
+/static/7212cfc0a3632f96b1fdb81e493b26a0/f058b/new-oauth-flow.png 630w,
+/static/7212cfc0a3632f96b1fdb81e493b26a0/c7dcc/new-oauth-flow.png 641w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;이렇게 electron에서 OAuth 구현하기를 마쳤습니다..&lt;br&gt;
+다시한번 느끼지만 설명하기가 참 어렵네요&lt;br&gt;
+그래도 최대한 다른 사람들에게 이해시키려고 하면서 적으니 좀 더 기억에 남는 것 같습니다. 감사합니다.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[styled-components Warning 기록 - Unknown Prop Warning]]></title><description><![CDATA[저는 react 프로젝트에서 주로 styled-components를 사용합니다. 
+styled-components는 css-in-js 라이브러리로, javascript 코드 내에서 css를 작성할 수 있게 해주는 라이브러리 입니다. css…]]></description><link>https://paerck25.github.io/post-7/</link><guid isPermaLink="false">https://paerck25.github.io/post-7/</guid><pubDate>Sat, 26 Mar 2022 19:00:00 GMT</pubDate><content:encoded>&lt;p&gt;저는 react 프로젝트에서 주로 styled-components를 사용합니다. &lt;br&gt;
+styled-components는 css-in-js 라이브러리로, javascript 코드 내에서 css를 작성할 수 있게 해주는 라이브러리 입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;css 파일을 따로 두지 않는 점&lt;/li&gt;
+&lt;li&gt;컴포넌트 단위로 css를 작성할 수 있는점&lt;/li&gt;
+&lt;li&gt;js 코드의 변수를 css 작성에 사용할 수 있다는 점&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이러한 장점들이 있어 감사히 사용하고 있습니다.&lt;/p&gt;
+&lt;h2&gt;Unknown Prop Warning&lt;/h2&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;tsx&quot;&gt;&lt;pre class=&quot;language-tsx&quot;&gt;&lt;code class=&quot;language-tsx&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; RightArrow &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;styled&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;ArrowBase&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; hasNextPage&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt;&lt;span class=&quot;token template-string&quot;&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;
+    margin-left: 50px;
+    &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;${&lt;/span&gt;props &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt;
+        &lt;span class=&quot;token operator&quot;&gt;!&lt;/span&gt;props&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;hasNextPage &lt;span class=&quot;token operator&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+        css&lt;span class=&quot;token template-string&quot;&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;
+            cursor: not-allowed;
+            .fill_color {
+                fill: #e5e8eb;
+            }
+        &lt;/span&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token tag&quot;&gt;&lt;span class=&quot;token tag&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;token class-name&quot;&gt;RightArrow&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token attr-name&quot;&gt;hasNextPage&lt;/span&gt;&lt;span class=&quot;token script language-javascript&quot;&gt;&lt;span class=&quot;token script-punctuation punctuation&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;hasNextPage&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token attr-name&quot;&gt;onClick&lt;/span&gt;&lt;span class=&quot;token script language-javascript&quot;&gt;&lt;span class=&quot;token script-punctuation punctuation&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;next&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;/&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;styled-components에서는 css를 작성할 때, 위와 같이 props를 사용해서 작성할 수 있습니다.&lt;br&gt;
+그렇게 계속 작성을 하던 와중에 Warning을 마주쳤습니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/56d5585621b77518be322a8e2a6978b1/b1584/styled-error.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 9.49367088607595%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAACCAYAAABYBvyLAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAZklEQVQI10WKOw6AIBAFvf+5aBRUCIkV6ze0dpYyZqGweMnO7HTvNIG1lHEE52BZYBiqw/t29337Kauf5+a8p8QIIfCIcCeh07AYAyKw73BdcBxwnpASbNvPOmXtdOta+6JdzrX7AOsykpOkZa5WAAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;styled-error&quot;
+        title=&quot;styled-error&quot;
+        src=&quot;/static/56d5585621b77518be322a8e2a6978b1/f058b/styled-error.png&quot;
+        srcset=&quot;/static/56d5585621b77518be322a8e2a6978b1/c26ae/styled-error.png 158w,
+/static/56d5585621b77518be322a8e2a6978b1/6bdcf/styled-error.png 315w,
+/static/56d5585621b77518be322a8e2a6978b1/f058b/styled-error.png 630w,
+/static/56d5585621b77518be322a8e2a6978b1/40601/styled-error.png 945w,
+/static/56d5585621b77518be322a8e2a6978b1/78612/styled-error.png 1260w,
+/static/56d5585621b77518be322a8e2a6978b1/b1584/styled-error.png 1342w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;” 리액트는 ‘hasNextPage’ 를 DOM element의 props로 인식하지 않습니다. 의도적으로 커스텀 속성으로 사용하려면 소문자인 ‘hasnextpage’ 로 입력하세요. 만약 실수로 부모 컴포넌트에서 통과된것이라면 DOM element에서 제거하세요 ”&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;react 공식문서에 따르면 {…this.props} 또는 cloneElement(element, this.props)를 사용하여 props를 그대로 자식 컴포넌트에 넘겨주면 발생하는 경고라고 합니다.&lt;br&gt;
+&lt;a href=&quot;https://ko.reactjs.org/warnings/unknown-prop.html&quot;&gt;리액트 공식문서&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;위의 RightArrow에서 ArrowBase는 svg 파일을 사용하고 있는데,&lt;br&gt;
+svg 태그의 attribute로 hasNextPage가 없어서 나오는 경고인 것 같습니다.&lt;br&gt;
+&lt;br&gt;
+공식문서의 해결책으로는 data-attribute로 사용하던가, 소문자로 사용하라는 것 같은데 그렇게 하기엔 코드가 멋이 없어지는 것 같아서 좀 더 찾아보았고,&lt;br&gt;
+당연히 styled-componenets 문서에도 문제를 알고 명시를 해두었습니다.&lt;br&gt;&lt;a href=&quot;https://styled-components.com/docs/api#transient-props&quot;&gt;styled-components 공식문서&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;공식문서에서는 v5.1 버전부터 Transient props 라는 이름으로,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;tsx&quot;&gt;&lt;pre class=&quot;language-tsx&quot;&gt;&lt;code class=&quot;language-tsx&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; RightArrow &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;styled&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;ArrowBase&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; $hasNextPage&lt;span class=&quot;token operator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt;&lt;span class=&quot;token template-string&quot;&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;
+    margin-left: 50px;
+    &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;${&lt;/span&gt;props &lt;span class=&quot;token operator&quot;&gt;=&gt;&lt;/span&gt;
+        &lt;span class=&quot;token operator&quot;&gt;!&lt;/span&gt;props&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;$hasNextPage &lt;span class=&quot;token operator&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+        css&lt;span class=&quot;token template-string&quot;&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;
+            cursor: not-allowed;
+            .fill_color {
+                fill: #e5e8eb;
+            }
+        &lt;/span&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token interpolation-punctuation punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;token template-punctuation string&quot;&gt;`&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token tag&quot;&gt;&lt;span class=&quot;token tag&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;token class-name&quot;&gt;RightArrow&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token attr-name&quot;&gt;$hasNextPage&lt;/span&gt;&lt;span class=&quot;token script language-javascript&quot;&gt;&lt;span class=&quot;token script-punctuation punctuation&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;hasNextPage&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token attr-name&quot;&gt;onClick&lt;/span&gt;&lt;span class=&quot;token script language-javascript&quot;&gt;&lt;span class=&quot;token script-punctuation punctuation&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;next&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;/&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;해당 props 앞에 ’$’ 표시를 붙이는 것으로 사용할 수 있다고 합니다.&lt;br&gt;
+내부적으로 ’$’ 를 기준으로 필터링을 하도록 처리하지 않았을까 생각합니다.&lt;br&gt;&lt;/p&gt;</content:encoded></item><item><title><![CDATA[React Build Error 기록 - nginx 404, ChunkLoadError]]></title><description><![CDATA[Nginx 404 리액트 프로젝트를 빌드 후 nginx로 띄워봤습니다.
+얼핏 보면 정상적으로 동작 하는 것 같았지만 한 단계 경로를 거친 상태에서 새로고침을 하니
+404 페이지가 나타났습니다.
+구글링 결과, 처음 index…]]></description><link>https://paerck25.github.io/post-6/</link><guid isPermaLink="false">https://paerck25.github.io/post-6/</guid><pubDate>Sat, 19 Mar 2022 23:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;Nginx 404&lt;/h2&gt;
+&lt;p&gt;리액트 프로젝트를 빌드 후 nginx로 띄워봤습니다.&lt;br&gt;
+얼핏 보면 정상적으로 동작 하는 것 같았지만 한 단계 경로를 거친 상태에서 새로고침을 하니&lt;br&gt;
+404 페이지가 나타났습니다.&lt;br&gt;
+구글링 결과,&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;처음 index 페이지에 접근 한 후의 경로 변경은 브라우저 자체에서 처리되지만,&lt;br&gt;
+한 단계 경로를 거친 상태로 새로 고치거나 새로 열면 요청이 nginx쪽에서 경로가 없는 곳으로 이동하기 때문에 404 페이지가 표시된다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;라고 합니다. 때문에 nginx.conf 설정을 바꾸어 주어야 하는데,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;  &amp;lt;-- 이 항목을 추가해 주어야 합니다.
+}&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;이것은 nginx에서 지정된 uri에서 찾을 수 없으면 index.html 브라우저로 보낸다고 합니다.&lt;/p&gt;
+&lt;h2&gt;ChunkLoadError&lt;/h2&gt;
+&lt;p&gt;위와 같이 빌드 후에 “example.com/a” 경로까지는 정상적으로 화면이 나타났지만,&lt;br&gt;
+“example.com/a/:id” 경로에 접근하니 흰 화면을 띄우며 콘솔창에는&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 610px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/26bde868086d1a2c96a863a5858142ca/5aae9/chunk_error.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 6.962025316455696%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAABCAYAAADeko4lAAAACXBIWXMAABYlAAAWJQFJUiTwAAAATklEQVQI1wXBWwqAIBBA0fa/qRCJnB6ogfZRq+gnnKlu53QtCFcpPDnyDZ5vFl7Xc0tAt4SdBy1F1DtsmbBaUBnRHLG9orXQ4kqbBNsyP00NR5dNJfcwAAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;chunk_error&quot;
+        title=&quot;chunk_error&quot;
+        src=&quot;/static/26bde868086d1a2c96a863a5858142ca/5aae9/chunk_error.png&quot;
+        srcset=&quot;/static/26bde868086d1a2c96a863a5858142ca/c26ae/chunk_error.png 158w,
+/static/26bde868086d1a2c96a863a5858142ca/6bdcf/chunk_error.png 315w,
+/static/26bde868086d1a2c96a863a5858142ca/5aae9/chunk_error.png 610w&quot;
+        sizes=&quot;(max-width: 610px) 100vw, 610px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;이러한 에러가 나타났습니다.&lt;br&gt;
+&lt;br&gt;
+“/a” 경로까지는 정상적으로 나타나길래 react-router 사용이 잘못되었나 싶어 이리 고치고 저리 고쳐봤지만 소용이 없었습니다.&lt;br&gt;
+&lt;br&gt;
+계속 삽질하는 와중에 React.Lazy를 함부로 사용하면 안된다는 글을 보고 혹시나 싶어 지워봤더니 정상동작은 하였지만, code-splitting은 하고 싶었고, 이런 해결로는 찝찝함이 가시지가 않아서 계속 구글링 한 결과,
+&lt;br&gt;
+package.json의 homepage 라는 필드를 지우면 된다는 스택오버플로우 글을 보고&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;&quot;homepage&quot; : &quot;.&quot;, &amp;lt;&amp;lt;-- 삭제&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;이렇게 되어있던 부분을 지워봤더니 React.Lazy를 사용한 채로도 정상 동작이 되었습니다.&lt;br&gt;
+&lt;br&gt;
+무슨 원리인가 싶어 찾아보니 package.json의 homepage가
+리액트의 PUBLIC_URL 환경변수에 영향을 주어, 경로가 바뀌는 것 같았습니다.&lt;br&gt;
+&lt;br&gt;
+하지만 아직 의문인건 PUBLIC_URL이 바뀌었으면 왜 “/a”경로까지는 정상적으로 나타났는지…&lt;br&gt;&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Github Action - 태그, 버전 릴리즈 자동화하기]]></title><description><![CDATA[저희 레포지토리는 main 브랜치와 develop 브랜치를 나눠서 develop 브랜치에서 테스트, QA를 다 마치고 release할 때만 main 브랜치에 올리는 방식으로 배포를 하고 있습니다.
+
+얼마 전에 develop…]]></description><link>https://paerck25.github.io/post-5/</link><guid isPermaLink="false">https://paerck25.github.io/post-5/</guid><pubDate>Wed, 16 Mar 2022 23:00:00 GMT</pubDate><content:encoded>&lt;p&gt;저희 레포지토리는 main 브랜치와 develop 브랜치를 나눠서 develop 브랜치에서 테스트, QA를 다 마치고 release할 때만 main 브랜치에 올리는 방식으로 배포를 하고 있습니다.&lt;br&gt;
+&lt;br&gt;
+얼마 전에 develop 브랜치에서 테스트를 다 마치고 main 브랜치에 올려서 배포를 하였는데, 어째선지 500 에러를 뱉어내며 제대로 동작하지 않았습니다.&lt;br&gt;
+계속 원인을 찾아보다가 도저히 못 찾겠어서 롤백을 하려 했는데 여태 release 버전 관리를 해오지 않아서 이전 버전의 커밋이 어디까지인지 몰라 롤백조차도 제대로 하지 못하였습니다.&lt;br&gt;
+&lt;br&gt;
+결국, 원인을 찾았지만(코드 문제가 아닌 db의 문제), 거의 30~40분 동안 서비스가 중지가 되버렸습니다.&lt;br&gt;
+추후 이런일이 없도록 버전 관리를 해야만 하겠다고 생각이 들었고,&lt;br&gt;
+수동으로 하면 귀찮으니 자동화를 하였습니다.&lt;/p&gt;
+&lt;h2&gt;Github Action 워크플로우&lt;/h2&gt;
+&lt;p&gt;얼마전에 무중단 배포를 구축할때도 사용하였지만&lt;br&gt;
+한번 사용법을 익혀두니까 여러모로 잘 써먹고 있는 것 같습니다.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;name: Create Release
+
+on:
+    pull_request:
+        types: [closed]
+        branches:
+            - main
+
+jobs:
+    create-relase:
+        if: github.event.pull_request.merged == true
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@master
+            - name: Create Release
+              id: create_release
+              uses: actions/create-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GIT_AUTH_TOKEN }}
+              with:
+                  tag_name: ${{ github.event.pull_request.title }}
+                  release_name: ${{ github.event.pull_request.title }}
+                  body: ${{ github.event.pull_request.body }}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;생각보다 간단하게 작성할 수 있었습니다.&lt;br&gt;
+&lt;br&gt;
+먼저, 트리거를 보시면 main 브랜치에 올라온 pull_request가 closed 되었을 때 실행되도록 작성하였습니다.&lt;br&gt;
+트리거로 [push]를 사용하지 않은 이유는 아래에서 pull_request의 title로 태그와 릴리즈를 만들기 때문에, main 브랜치에 바로 push하는 커밋들에는 실행되지 않았으면 하였습니다.&lt;br&gt;
+&lt;br&gt;
+그리고 jobs를 보시면 pull_request가 merge가 되었을 때만 실행되도록 if 조건을 걸어두었습니다.&lt;br&gt;
+이걸 해두지 않으면 PR을 올리고 모종의 이유로 PR을 merge하지 않고 close하였을 때도 실행이 되므로 그것을 방지하였습니다.&lt;br&gt;
+&lt;br&gt;
+그 외에는 레포지토리에 Secret Key를 GIT_AUTH_TOKEN 이라는 이름으로 등록하여 사용하였고, 태그명,버전명, 내용은 pull_request와 같도록 작성하였습니다.&lt;/p&gt;
+&lt;h2&gt;테스트&lt;/h2&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/1357a53f60aa037e0bff320f3c50e9cf/e8e04/pr_title.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 39.24050632911392%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAICAYAAAD5nd/tAAAACXBIWXMAABYlAAAWJQFJUiTwAAABPUlEQVQoz2WRfW7DIAzFc/877J8dYCeaVq1t0iTki4CBQOBNdpR22pB+esZ+GJArAIgpCXsuyLkg7Rkx7dhzfuZYE+f2LPuSITF7zjpTcUPjAoZJo1Mj7k2LaVlhyKEfRjw6hVv9wKPrYcjje2hwUTW+1B3NqPDoBqHtB7RqPBqqrgMRSePVOlgXQCFCWwdtCMtqRclHaHJYiDBZi5U8VuvFx8pUOWd8vL+hrluodcfntcewRiyuCDPlJ5PdRRfhVTu9nD++bAy2mDCbgKZfoInjTTA+w/hd1Ib/cG2x/PIo56pSCs4VQoDWGkCRS8g5/F6lZLD/0Cy+lBKMtXDOwXt/NDzRq0XTKjRtL8NhbnWLy/Uug/JbBPkNjgmnRvgtHYT4eiErT3FajAxhnLXEszaYtIGhIIe54Yu/+w0/cJRqtYmUP+QAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;pr_title&quot;
+        title=&quot;pr_title&quot;
+        src=&quot;/static/1357a53f60aa037e0bff320f3c50e9cf/f058b/pr_title.png&quot;
+        srcset=&quot;/static/1357a53f60aa037e0bff320f3c50e9cf/c26ae/pr_title.png 158w,
+/static/1357a53f60aa037e0bff320f3c50e9cf/6bdcf/pr_title.png 315w,
+/static/1357a53f60aa037e0bff320f3c50e9cf/f058b/pr_title.png 630w,
+/static/1357a53f60aa037e0bff320f3c50e9cf/40601/pr_title.png 945w,
+/static/1357a53f60aa037e0bff320f3c50e9cf/78612/pr_title.png 1260w,
+/static/1357a53f60aa037e0bff320f3c50e9cf/e8e04/pr_title.png 1270w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;main 브랜치로 Pull Request를 작성할 때 버전을 쓰고, 내용을 채운 후&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/9402cef321da51515f52a0518cf4ab5e/f680b/pr_merge.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 18.354430379746837%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAECAYAAACOXx+WAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAyklEQVQY02WOXW6DMBCEOWOv1Ev1EK36UrVqicE/uIloQIBJAIP9VTgvqbrSt9rZmYfJ9MfENG6EDeIdYb3T4aYJ/z0/hz9kjw8l4nVmcB1KVVTVN1pb6vrM0R6xxqKV4XSqkVInf7+NsYkYSYQtJrLnp57hJ9D1HYWUHIoioY3hTUhecsW7kCit+cxzRFmijOErP5ALwblpWLe9/m2yfW1r5OpWRrdwcZ6LW7iOnqb32Hah7T3jMCdvz7hhxvVT+rWNS1k/R5Yp8At5wy/LDetp9wAAAABJRU5ErkJggg==&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;pr_merge&quot;
+        title=&quot;pr_merge&quot;
+        src=&quot;/static/9402cef321da51515f52a0518cf4ab5e/f058b/pr_merge.png&quot;
+        srcset=&quot;/static/9402cef321da51515f52a0518cf4ab5e/c26ae/pr_merge.png 158w,
+/static/9402cef321da51515f52a0518cf4ab5e/6bdcf/pr_merge.png 315w,
+/static/9402cef321da51515f52a0518cf4ab5e/f058b/pr_merge.png 630w,
+/static/9402cef321da51515f52a0518cf4ab5e/40601/pr_merge.png 945w,
+/static/9402cef321da51515f52a0518cf4ab5e/f680b/pr_merge.png 1108w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;머지를 하면&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/21390c447c35a27873ffed3dc6033bd6/6568d/done.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 39.87341772151899%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAICAYAAAD5nd/tAAAACXBIWXMAABYlAAAWJQFJUiTwAAAA8ElEQVQoz31S7Y7DIAzr+7/h9rfr1NKPQWk7ICE+AWrvbutmyQpEkeMEKhFBAjMjhABiRsolpjMRgYgRoyDG+IdyyiqJpYK2baFUD601dnRK4XK5ou06GLLwMeAXgjMUQWY0txuGcUKUWMpFYK3NTfp+QNsr9MOAcZzyJHvNm+Ce1Mbi3inY54riWvIaUvQhwDkP51wmczzW8spDcJ4ttJmzQOkOmHlGXdd4bts/F5/EsuCZ9f2+LCsaZaC0x7QQPBVn+QHknIfD926A9x6d9mgehPsjwGzlB8QvrF6XugvmNSwrnCcQCwLHHL+Nm0b+AaH2dR87MAn3AAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;done&quot;
+        title=&quot;done&quot;
+        src=&quot;/static/21390c447c35a27873ffed3dc6033bd6/f058b/done.png&quot;
+        srcset=&quot;/static/21390c447c35a27873ffed3dc6033bd6/c26ae/done.png 158w,
+/static/21390c447c35a27873ffed3dc6033bd6/6bdcf/done.png 315w,
+/static/21390c447c35a27873ffed3dc6033bd6/f058b/done.png 630w,
+/static/21390c447c35a27873ffed3dc6033bd6/40601/done.png 945w,
+/static/21390c447c35a27873ffed3dc6033bd6/78612/done.png 1260w,
+/static/21390c447c35a27873ffed3dc6033bd6/6568d/done.png 1660w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;이렇게 태그와 버전이 생성되었습니다.
+&lt;br&gt;
+&lt;br&gt;&lt;/p&gt;</content:encoded></item><item><title><![CDATA[무중단 배포 구축하기 - docker]]></title><description><![CDATA[이번 포스팅은 도커에 대한 튜토리얼은 아닙니다.
+도커에 대한 튜토리얼은 공식 문서나, 다른 블로그에서도 많이 소개가 되어있으니 참고 부탁드립니다.
+저는 도커파일과 컴포즈 파일을 작성하면서 왜 이렇게 작성했는지에 대해서 작성하였습니다.
+
+blue…]]></description><link>https://paerck25.github.io/post-4/</link><guid isPermaLink="false">https://paerck25.github.io/post-4/</guid><pubDate>Sun, 27 Feb 2022 20:38:00 GMT</pubDate><content:encoded>&lt;p&gt;이번 포스팅은 도커에 대한 튜토리얼은 아닙니다.&lt;br&gt;
+도커에 대한 튜토리얼은 공식 문서나, 다른 블로그에서도 많이 소개가 되어있으니 참고 부탁드립니다.&lt;br&gt;
+저는 도커파일과 컴포즈 파일을 작성하면서 왜 이렇게 작성했는지에 대해서 작성하였습니다.&lt;br&gt;
+&lt;br&gt;
+blue-green 방식의 무중단 배포를 구현하려면 인스턴스를 2개를 띄워야 합니다.&lt;br&gt;
+그 점에서 도커가 손쉽게 동일한 환경을 유지하면서 여러개를 띄울 수 있어서 사용하고 있습니다.&lt;br&gt;&lt;/p&gt;
+&lt;h3&gt;Dockerfile&lt;/h3&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;FROM python:3.9.5-slim-buster
+ENV PYTHONUNBUFFERED 1
+RUN apt-get update \
+    &amp;amp;&amp;amp; apt-get -y install libpq-dev gcc \
+    &amp;amp;&amp;amp; pip install psycopg2
+WORKDIR /code
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+RUN chmod +x ./docker-entrypoint.sh
+ENTRYPOINT [&quot;./docker-entrypoint.sh&quot;]&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;베이스 이미지는 python:3.9.5-slim-buster 사용하였습니다.&lt;br&gt;
+기존에는 python:3.9.5-buster를 사용하였는데 이번 기회에 이미지의 사이즈를 줄이기 위해 slim 버전으로 바꾸었습니다.&lt;br&gt;
+alpine이라는 더 작은 사이즈의 이미지가 있지만 어느 &lt;a href=&quot;https://pythonspeed.com/articles/alpine-docker-python/&quot;&gt;아티클&lt;/a&gt;을 보고 slim을 사용하기로 결정하였습니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;사이즈는 2GB에서 1.5GB로 다소 감소하였습니다.&lt;br&gt;
+slim 버전으로 바꾸었을때 pip install 하면 psycopg2 설치부분에서 에러가 났었는데, 3번째줄 커맨드를 추가해주니 정상 동작 하였습니다.&lt;br&gt;
+&lt;br&gt;
+WORKDIR은 nginx의 경로와 동일하게 지정해주었습니다. 추후 이 경로에 static 파일 폴더가 생성됩니다.&lt;br&gt;
+&lt;br&gt;
+docker-entrypoint.sh 는 쉘 스크립트 파일인데, 마이그레이션과 스태틱 파일 정리 명령어가 들어있습니다.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;# docker-entrypoint.sh
+
+# Collect static files
+echo &quot;::: Collect static files :::&quot;
+python manage.py collectstatic --noinput
+
+echo &quot;::: Apply database migrations :::&quot;
+python manage.py migrate&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;이제 docker-compose 파일들을 살펴보겠습니다.&lt;br&gt;
+파일”들”이라고 한 이유는 저는 docker-compose 파일을 4개로 쪼갰습니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/e25a5e77c511daf663de7872744959e9/442cb/docker-compose-images.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 29.746835443037973%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAGCAYAAADDl76dAAAACXBIWXMAABYlAAAWJQFJUiTwAAABGUlEQVQY02WQwXKCMBRF+RUhwYEZQEsATYJJCCiI0na67aZuuuj/r2+HWO04Ls68l5e8M3fisUKAFxI/TKI1B5ynD/T9BGsHHI+vGMc3DMOE0+kdXTe6Gecaec5RFOIJL81ysIzhe11BS43heEbX9lDKYr8f0Pcjum64Y+0BQiik6QuyjCHL8gc8PyCICMUlSlDlDKaxqOsaZVmhrnfQWkMpBWOM67fbrWOx8OH7AQghCIJ/vICGiMMlLnGKDSvQ2Ba7nUJVbVw1pnFVKQ1rWwgh72cpa4ThEoRQUBo6vIBQxHSJryj9S9i4h7eEt8VrWuOEnAs3m0mS1CV7En5GCcqcXZf4/MGlW7gKpevnZLP4Jp3vVqv1g/AXnqvG5aCRz3MAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;docker-compose&quot;
+        title=&quot;docker-compose&quot;
+        src=&quot;/static/e25a5e77c511daf663de7872744959e9/f058b/docker-compose-images.png&quot;
+        srcset=&quot;/static/e25a5e77c511daf663de7872744959e9/c26ae/docker-compose-images.png 158w,
+/static/e25a5e77c511daf663de7872744959e9/6bdcf/docker-compose-images.png 315w,
+/static/e25a5e77c511daf663de7872744959e9/f058b/docker-compose-images.png 630w,
+/static/e25a5e77c511daf663de7872744959e9/442cb/docker-compose-images.png 752w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;기존 한개의 docker-compose 파일에서는 배포를 할 때마다 모든 service들이 새로 재시작이 되기 때문에 비효율적이라 생각하여 nginx,redis등 환경 세팅과 web을 분리하여 작성하였습니다.&lt;br&gt;
+&lt;br&gt;
+또, blue-green 배포 방식을 사용하기 위해 포트번호를 다르게 하여 web을 2개로 분리하였고,&lt;br&gt;
+내부 개발서버용, 운영서버용 세팅을 분리하였습니다.&lt;/p&gt;
+&lt;h3&gt;docker-compose - blue , green&lt;/h3&gt;
+&lt;p&gt;blue,green 파일은 포트 번호만 다르고 모두 동일합니다.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;version: &quot;3&quot;
+
+services:
+  web:
+    build: .
+    command: gunicorn my_app.wsgi:application --bind 0.0.0.0:8000 --workers 8
+    volumes:
+      - ./static_root:/code/static_root
+      - media_volume:/code/media
+    environment:
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+    ports:
+      - &quot;8000:8000&quot;
+    networks:
+      - settings
+
+volumes:
+  media_volume:
+
+networks:
+  settings:
+    external: true
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;여기서는 위에서 만들었던 dockerfile을 가지고 빌드를 합니다.&lt;br&gt;
+빌드가 끝나면 gunicorn을 실행시켰습니다. &lt;br&gt;
+—bind 0.0.0.0:8000 옵션은 8000번 포트에서 실행시키겠단 의미이고,&lt;br&gt;
+—workers 8 옵션은 gunicorn의 프로세스 수를 8개라고 정하는 것인데, 통상 서버의 코어수 * 2 를 지정한다고 합니다.&lt;br&gt;
+&lt;br&gt;
+그 외에 static 폴더 경로를 지정해주고,&lt;br&gt;
+django는 디버그 모드가 아니면 지정해 준 호스트에서만 접속이 가능하기 때문에 환경변수로 지정해주었습니다.&lt;br&gt;
+포트는 blue는 8000번, green은 8001번으로 지정해주었습니다.&lt;br&gt;
+&lt;br&gt;
+제가 제일 헤맸던 부분이 networks 부분인데, &lt;br&gt;
+이전에 한개의 docker-compose 파일을 사용하였을 때에는 별 다른 설정없이 다른 컨테이너(redis,nginx)와의 통신이 가능했었는데,&lt;br&gt;
+docker-compose 파일을 분리를 하니, 이전처럼 service명:포트번호로 접근이 안되고, localhost, 127.0.0.1로도 안되서 검색을 해보니,&lt;br&gt;
+docker-compose 파일마다 네트워크가 만들어지고,&lt;br&gt;
+같은 파일이면 같은 네트워크를 공유해서 별 다른 설정없이 접근이 가능하지만,&lt;br&gt;
+파일을 분리시키면 네트워크도 분리가 되어서 연결이 안된다고 합니다.&lt;br&gt;
+&lt;br&gt;
+저는 네트워크를 만들어서 모든 compose 파일이 그곳을 가리키도록 설정하도록 하였습니다.&lt;br&gt;
+조금 있다가 설명드리겠지만 저는 docker-compose를 실행하기 전에 settings라는 네트워크를 만들어 주는 명령어를 실행하도록 하였습니다.&lt;br&gt;
+그리고 위에 적혀있는 networks 설정이 그 네트워크를 사용하도록 하는 설정하였습니다.&lt;br&gt;&lt;/p&gt;
+&lt;h3&gt;docker-compose - setting&lt;/h3&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;version: &quot;3&quot;
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - &quot;6379:6379/tcp&quot;
+    command: redis-server
+    healthcheck:
+      test: redis-cli ping
+    networks:
+      - settings
+      - default
+
+  celery:
+    build: .
+    command: celery -A my_app worker -l info
+    restart: unless-stopped
+    environment:
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+    depends_on:
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A my_app beat -l info
+    restart: unless-stopped
+    environment:
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+    depends_on:
+      - redis
+
+  nginx:
+    image: nginx
+    ports:
+      - &quot;80:80&quot;
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./mysite.conf:/etc/nginx/conf.d/mysite.conf
+      - ./static_root:/code/static_root
+    command: [&quot;nginx&quot;, &quot;-g&quot;, &quot;daemon off;&quot;]
+    networks:
+      - settings
+
+networks:
+  settings:
+    external: true
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;setting 파일에서는 redis,celery,nginx가 한꺼번에 빌드되고 있습니다.&lt;br&gt;
+위의 blue,green 처럼 networks를 settings를 사용하도록 하였고,&lt;br&gt;
+redis에는 celery와 통신하기 위해 기존처럼 default 네트워크도 추가로 사용하도록 설정하였습니다.&lt;br&gt;
+&lt;br&gt;
+celery 빌드에는 기존 api서버의 도커파일을 사용합니다.&lt;br&gt;
+왜 따로 분리가 되었는지는 자세히는 모르겠지만 관리가 좀더 수월하고,&lt;br&gt;
+한곳에서 에러가 발생해도 나머지는 정상동작 하기 위해서 라고 알고 있습니다.&lt;br&gt;
+&lt;br&gt;
+nginx 설정에는 지난번 포스팅에서 만들었던 nginx.conf 파일과 mysite.conf 파일을 사용하도록 설정하고,&lt;br&gt;
+static 파일을 서빙하기 위해 경로도 설정해주었습니다.&lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;h3&gt;deploy.sh&lt;/h3&gt;
+&lt;p&gt;이렇게 만들어진 docker-compose 파일로 어떻게 blue-green 무중단 배포를 진행하느냐!&lt;br&gt;
+저는 deploy.sh 라는 쉘 스크립트 파일을 만들었습니다.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;PROJECT_NAME=app
+SETTING_SERVER=$1
+
+EXIST_BLUE=$(docker-compose -p ${PROJECT_NAME}-blue -f docker-compose.blue.yml ps | grep -e running -e Up)
+EXIST_SETTING=$(docker-compose -p setting-${SETTING_SERVER} -f docker-compose.setting_${SETTING_SERVER}.yml ps | grep -e running -e Up)
+EXIST_NETWORK=$(docker network ls | grep settings)
+
+if [ -z &quot;$EXIST_NETWORK&quot;]; then
+    echo &quot;:::: networks setup ::::&quot;
+    docker network create settings
+fi
+
+if [ -z &quot;$EXIST_BLUE&quot; ]; then
+    echo &quot;:::: blue up ::::&quot;
+    docker-compose -p ${PROJECT_NAME}-blue -f docker-compose.blue.yml up -d --build
+
+    sleep 30
+
+    echo &quot;:::: green down ::::&quot;
+
+    docker-compose -p ${PROJECT_NAME}-green -f docker-compose.green.yml down --rmi all
+else
+     echo &quot;:::: green up ::::&quot;
+    docker-compose -p ${PROJECT_NAME}-green -f docker-compose.green.yml up -d --build
+
+    sleep 30
+
+    echo &quot;:::: blue down ::::&quot;
+
+    docker-compose -p ${PROJECT_NAME}-blue -f docker-compose.blue.yml down --rmi all
+fi
+
+if [ -z &quot;$EXIST_SETTING&quot;]; then
+    echo &quot;:::: setting up ::::&quot;
+    docker-compose -p setting-${SETTING_SERVER} -f docker-compose.setting_${SETTING_SERVER}.yml up -d --build
+fi&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;전부 제가 작성한 것은 아니고 구글 선생님께서 알려주셨습니다..ㅎㅎ&lt;br&gt;
+&lt;br&gt;
+먼저, PROEJCT_NAME, SETTING_SERVER는 변수인데 &lt;br&gt;
+그 중 SETTING_SERVER는 deply.sh를 실행할 때 매개변수를 받아서 변수에 저장하는 것 입니다.&lt;br&gt;
+저는 세팅 컴포즈 파일명 뒷부분 prod, dev를 매개변수로 받아서 각 서버마다 다르게 실행될 수 있도록 하였습니다.&lt;br&gt;
+&lt;br&gt;
+그 후 settings 네트워크가 만들어져 있는지 검사하여 없으면 생성하고,&lt;br&gt;
+blue 컨테이너가 있는지 검사하여 있으면 green 컨테이너 배포 후 30초 후에 blue 컨테이너를 끄고 없으면 반대로 동작하도록 하였습니다.&lt;br&gt;
+마지막엔 세팅이 이미 되어있는지 검사 후 없으면 실행하도록 하였습니다.&lt;br&gt;
+세팅을 제일 마지막에 둔 이유는 &lt;br&gt;
+이전 포스팅 nginx의 mysite.conf 파일에서 호스트를 web으로 설정을 하였는데 web이 먼저 켜져있는 상태가 아니면 실행되자마자 뻗어버리기 때문입니다.&lt;br&gt;
+&lt;br&gt;
+이렇게 작성을 마쳤습니다. &lt;br&gt;
+이제 배포할 서버에 들어가서 ./deploy.sh prod 라는 커맨드만 입력해주면 배포가 완료됩니다!
+&lt;br&gt;
+&lt;br&gt;
+다 적고나니 너무 글만 적혀있어서 지루한 감이 없지않아 있는 것 같습니다..ㅎㅎ&lt;br&gt;
+너무 요약도 없이 주절주절 적혀있는 것도 그렇고.. 글쓰는게 참 어렵네요 &lt;br&gt;
+여러분들이 보시기에 더 개선해야 할 점이 있다면 꼭 알려주시면 감사하겠습니다.&lt;br&gt;&lt;/p&gt;</content:encoded></item><item><title><![CDATA[무중단 배포 구축하기 - nginx]]></title><description><![CDATA[저희 회사에는 실제로 운영하는 product 서버,
+내부에서 Q/A 하는 용도의 develop 서버가 있습니다.
+
+이슈나 개선사항 같은 것들을 개발하여 develop 서버에 배포 하고 Q/A를 마치고 product…]]></description><link>https://paerck25.github.io/post-3/</link><guid isPermaLink="false">https://paerck25.github.io/post-3/</guid><pubDate>Sun, 20 Feb 2022 23:05:00 GMT</pubDate><content:encoded>&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/bb6b88c165cd0c941b33a5353a888d32/1cfc2/NGINX-logo.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 55.69620253164557%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAALCAIAAADwazoUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAByElEQVQoz6WSy08TURTG7z/hH2HYumJhSFh1I68VRtZGYAlSWIARymthE0ykJLwKUR4tQY0KscpzpnWgQTo8pu1QCLUDlWEKbQkM9N5zyMwwblxycxffOff7cm/O7xK8xyIMWAEoIjIABowBFIAWDMEAgQKjwIxTNPpmaZip6SSICEaSWQIA/r8BECyD5aG2JrwqjRz8QERBiwVPJVXPNmwO1214QqdROX/0WVn7pAg6u1EutcH97zOpUCD9GxHHDxfXNZn0SH7yvnThROyXv7ZERptEb/vO1Ewq6BS9347CTtFbxXUkL9UKrvPBbPVkcvXxQnPz1ljxz5eJi2PyemfyefhdjeCu4rvrNwaeBnsD6U1nxFvOuzyJuTexjzWC+wnX0RQZday8UvVs6/YHMvTIl1wxnt0YGemSfH/1czLh6JX8ffKXMs5VyXc+E9y+w+Xa9bcP516U8y5EdCy3te9OlSy1TCe5ovn6cGaPxHNKNJdCxDUtLmX/6OxmaD/gScynr85UPRvNpRZPxMx1HhDDGXlV3bXMv7RYPK+QuxnaQ2a2AHPfNRHArsBkCf84WxgoUIutyZmCGWAmWGYmLea22RDkPj/sFvGRQJ4mkbwlAAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;nginx&quot;
+        title=&quot;nginx&quot;
+        src=&quot;/static/bb6b88c165cd0c941b33a5353a888d32/f058b/NGINX-logo.png&quot;
+        srcset=&quot;/static/bb6b88c165cd0c941b33a5353a888d32/c26ae/NGINX-logo.png 158w,
+/static/bb6b88c165cd0c941b33a5353a888d32/6bdcf/NGINX-logo.png 315w,
+/static/bb6b88c165cd0c941b33a5353a888d32/f058b/NGINX-logo.png 630w,
+/static/bb6b88c165cd0c941b33a5353a888d32/1cfc2/NGINX-logo.png 900w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;저희 회사에는 실제로 운영하는 product 서버,&lt;br&gt;
+내부에서 Q/A 하는 용도의 develop 서버가 있습니다.&lt;br&gt;
+&lt;br&gt;
+이슈나 개선사항 같은 것들을 개발하여 develop 서버에 배포 하고 Q/A를 마치고 product서버에 배포하는 흐름으로 개발을 하고 있습니다.&lt;br&gt;
+처음 왔을 때 기존의 개발자분들이 배포를 직접 터미널에서 ssh로 서버에 접속해서 수동으로 하시고 있었습니다.&lt;br&gt;
+&lt;br&gt;
+그래서 제가 한번 develop 서버 배포를 자동화 시켜보겠습니다 하고 github action을 사용하여 develop 서버에 배포하는 과정을 간단하게 자동화를 하였습니다.&lt;br&gt;
+develop 서버는 docker 같은 것을 사용하지 않았고 반영사항을 pull하고 start만 해주면 되는 간단한 프로세스였기에 금방 할 수 있었습니다.&lt;br&gt;
+&lt;br&gt;
+develop 서버는 간단하게 구성하였지만 &lt;br&gt;
+product 서버는 배포할 때 2 ~ 3초의 서버 다운이 생기기 때문에 이걸 해결해 달라는 요구사항이 있어서 바로 자동화하진 못했고, 그렇게 어영부영 시간이 지나다 보니 이제서야 자동화를 해보려고 합니다.
+&lt;br&gt;&lt;/p&gt;
+&lt;h2&gt;nginx&lt;/h2&gt;
+&lt;p&gt;무중단 배포를 구성하기 위해서 nginx의 로드밸런싱 기능을 사용하려고 합니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/7f26f1dc70fd786c08b2e3e3f35a7e2c/a242d/load-balancer.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 45.56962025316456%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAJCAYAAAAywQxIAAAACXBIWXMAAAsTAAALEwEAmpwYAAACoklEQVQozx2S30tTYRjHvzvKSN0sNlNQlkRUXoSJafkDSqFwgZJDikgzmW7nx85qSw30qDuMBZq/ZpN54ZAW29XwRhg4jwxERER3MSWHLsRzEETwL+jmxLuLhxfe78v7/Tzf50E6nS7LZDK98Xi8GAAEQch3Op1gWRb9DjsMs61AsBGaYGPunO4eyWkMw8DlcqGtrQ2SJCESiZjC4XApTk9PO2VZVjc2NpoAUOPj43qGYXQDtE2jQkX1D4vmbqSLMqy0UYWLz3N3bpuTfJg/NjamA5AXCoWqLi8v1bOzsxkkk0nj3t7ewP7+vtbv98NqtcJutxcwfTbK88GNWv9bGFfMwPwjUP4GYPkx+pw2OBwO3cTExA1VVbG6unpfUZQ/six35QjPz88JYTMhFEVRT9O00e5ki4f6PxdavtsMeUvNUwjULWP+aQkkCvADHMcVer1euN1ukpRma2urJ5FI1GJ7e7s0lUoxa2trhcTN4/FQHMeV0IOOyiXziLEu8L6vWxLV1/Gv6oMli5At/1lkHWRMPM8bRVEsIhDRaLTm+vpaVRQliGw2264oyj9JkhqIE8mFYRiD1UXrQ++8BQ8n2+9VhDuS5b860lWBzvq9xoDW+o3V8zx/SxTFfAIRi8XKjo+PF9LpdD12d3dNR0dHQjwev0VEUjRNF7EfB6jfXT6Uzr3MtQQztLcXX0G9uQ3WxYPn+aLh4WEteT85OanLZDIzqVTqDcmwVZblv4lEooZMbHR0lBAW22g7Rc08Q+WsWYM7AByAfuEFFbNMgf9EkylrBUHQE7NIJFJ3dXWlXlxczOHw8LD65OQksrm5aSJuPp8vn2VZDcdx6P1iA5afAMEGUMEmYBoYo4fAsExuD1taWhCNRrG+vq47ODjo2dnZqfgPiocsw5IriksAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;load_balancer&quot;
+        title=&quot;load_balancer&quot;
+        src=&quot;/static/7f26f1dc70fd786c08b2e3e3f35a7e2c/f058b/load-balancer.png&quot;
+        srcset=&quot;/static/7f26f1dc70fd786c08b2e3e3f35a7e2c/c26ae/load-balancer.png 158w,
+/static/7f26f1dc70fd786c08b2e3e3f35a7e2c/6bdcf/load-balancer.png 315w,
+/static/7f26f1dc70fd786c08b2e3e3f35a7e2c/f058b/load-balancer.png 630w,
+/static/7f26f1dc70fd786c08b2e3e3f35a7e2c/a242d/load-balancer.png 724w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;로드밸런싱이란 외부에서 들어온 요청을 여러 개의 서버로 적절히 나누어서 처리하고, 하나의 서버가 다운이 되면 다른 온라인 서버로 요청을 리디렉션 하는 것이라고 합니다.&lt;br&gt;
+&lt;br&gt;
+위의 로드밸런싱을 활용하여 기존 서버를 유지한 채 신규 서버를 구성하여 두 개의 서버로 나눠서 요청을 받다가, 기존의 서버 인스턴스를 닫고 신규 서버로 모든 요청을 돌리는 방식으로 서버의 중단이 없는 배포 방식을 구성하려고 합니다.&lt;br&gt;
+&lt;br&gt;
+nginx에서 로드밸런싱을 하려면 설정을 해주어야 합니다.&lt;br&gt;
+가장 기본적인 설정 파일은 보통 etc/nginx/nginx.conf 파일이고&lt;br&gt;
+nginx.conf 파일에 모두 작성해도 되지만, 다른 .conf 파일을 만들고 inclue하여 사용할 수 있습니다.&lt;br&gt;
+&lt;br&gt;
+우선 기본적인 nginx.conf 파일을 보면&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;// nginx.conf
+
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    server {
+        listen       80;
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+}&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;이런식으로 구성이 되어있습니다.&lt;br&gt;
+설정을 제 나름대로 풀어보면, &lt;br&gt;
+최대 사용자 수는 1 * 1024(worker_processes * worker_connections ) 이고,&lt;br&gt;
+서버의 80번 포트로 요청이 오면 index.html 파일을 서빙해준다. &lt;br&gt;
+인 것 같습니다. &lt;br&gt;
+&lt;br&gt;
+각각의 지시어에 대해서는 구글선생님이 친절하게 알려주시기 때문에..&lt;br&gt;
+아무튼, 저는 이 nginx.conf를 이런식으로 작성하였습니다&lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;worker_processes auto;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  charset utf-8;
+  include mime.types;
+
+  include conf.d/*.conf;
+}&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;worker_processes는 서버의 코어 수 만큼 할당하는 것이 보통이지만 auto로 하여도 무방하다 하여 auto로 지정하였고,&lt;br&gt;
+charset은 한국어 깨짐 문제를 방지하기 위해서 사용하였습니다. &lt;br&gt;
+&lt;br&gt;
+여기까지가 nginx의 기본 설정이고 그 외의 로드밸런싱 설정은 .conf 파일을 따로 만들어서 작성하였습니다.&lt;br&gt;
+위의 nginx.conf의 맨 아랫줄에 inclue하는 부분에서 아래의 mysite.conf 파일을 불러와서 적용시킵니다.
+&lt;br&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;// conf.d/mysite.conf
+
+upstream django-server {
+        server web:8000;
+        server web:8001;
+}
+
+server {
+    listen 80;
+    server_name mysitedomain.com;
+    client_max_body_size 20M;
+
+    location / {
+        proxy_pass http://django-server;
+    }
+
+    location /static/ {
+            alias /code/static_root/;
+    }
+
+    location /media/ {
+            alias /code/media/;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;nginx의 로드밸런서를 사용하기 위해서는 upstream이라는 지시어에 이름을 지어주고 그 안에 서버들의 [호스트:포트]를 적어주어야 합니다.&lt;br&gt;
+(2월 27일 수정 : 기존에 127.0.0.1로 호스트 설정 해주었는데 도커,도커 컴포즈에서 사용하려면 해당 서비스명(web)을 호스트로 지정해주어야 합니다)
+&lt;br&gt;
+그리고 아래의 server 블럭에는 프록시 설정을 해준 것인데,&lt;br&gt;
+80번 포트를 통하여 요청을 보내면 위에서 정해준 upstream 서버들에게 요청을 분배해줍니다.&lt;br&gt;
+&lt;br&gt;
+그 외에는 각 location에 해당하는 경로로 요청을 했을때 alias 경로로 변환하여 찾아주는 설정입니다.&lt;br&gt;
+&lt;br&gt;
+이제 두 서버중 하나가 다운이 되어도 다른 온라인 서버로 연결되어 사용자가 중단없이 사용할 수 있을 것 입니다.&lt;br&gt;
+&lt;br&gt;
+다음 포스팅은 docker-compose를 사용하여 django, gunicorn 컨테이너와 nginx 컨테이너를 연결하는 작업을 할 예정입니다. &lt;br&gt;
+&lt;br&gt;
+부족한 글 읽어주셔서 감사합니다&lt;/p&gt;</content:encoded></item><item><title><![CDATA[django 로딩 속도 개선해보기]]></title><description><![CDATA[로컬 서버 기준 - 평균 15000ms ~ 15500ms
+배포 서버 기준 - 평균 3000ms ~ 3500ms…]]></description><link>https://paerck25.github.io/post-2/</link><guid isPermaLink="false">https://paerck25.github.io/post-2/</guid><pubDate>Sun, 06 Feb 2022 23:43:00 GMT</pubDate><content:encoded>&lt;p&gt;
+저는 현재 장고, 장고 템플릿으로 만들어진 서비스를 개선하고 있습니다.&lt;br&gt;
+작업을 하면서 새로고침을 자주 하게 되는데 index 페이지의 로딩속도가 매우 느렸습니다.&lt;br&gt;
+개발자 도구의 네트워크 탭에서 측정을 해보니 첫 화면이 그려지기 까지(흰 화면에서 벗어나기 까지)&lt;br&gt;
+&lt;blockquote&gt;
+&lt;p&gt;로컬 서버 기준 - 평균 15000ms ~ 15500ms&lt;br&gt;
+배포 서버 기준 - 평균 3000ms ~ 3500ms&lt;br&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;의 시간이 걸렸습니다.&lt;br&gt;&lt;/p&gt;
+&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/e13c2bbfbeeed64ad1147bb960e2dce2/92bee/performance_before.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 6.962025316455696%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAABCAYAAADeko4lAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAOElEQVQI12P4+P3L/08/QPgrlEbwEXIQ/BGKQewP3z//v/v0yf8H7z7+v/36w/8777/+f/f5y38ALt5Ml3GMiQQAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;performance_before&quot;
+        title=&quot;performance_before&quot;
+        src=&quot;/static/e13c2bbfbeeed64ad1147bb960e2dce2/f058b/performance_before.png&quot;
+        srcset=&quot;/static/e13c2bbfbeeed64ad1147bb960e2dce2/c26ae/performance_before.png 158w,
+/static/e13c2bbfbeeed64ad1147bb960e2dce2/6bdcf/performance_before.png 315w,
+/static/e13c2bbfbeeed64ad1147bb960e2dce2/f058b/performance_before.png 630w,
+/static/e13c2bbfbeeed64ad1147bb960e2dce2/40601/performance_before.png 945w,
+/static/e13c2bbfbeeed64ad1147bb960e2dce2/78612/performance_before.png 1260w,
+/static/e13c2bbfbeeed64ad1147bb960e2dce2/92bee/performance_before.png 2340w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;
+&lt;small&gt;
+⇧ 로컬 서버 (개선 전)
+&lt;br&gt;
+(개선 후 배포까지 마치고 작성하는 게시글 이기에 배포 서버 스크린샷은 미처 찍지 못하였습니다..😢)
+&lt;/small&gt;&lt;/p&gt;
+&lt;p&gt;
+로컬 서버와 배포 서버의 속도 차이가 나는 이유는 django의 디버깅 툴 유무 때문이라고 알고 있습니다.&lt;br&gt;
+&lt;br&gt;
+아무튼, 앞으로도 새로고침을 계속 해야할텐데 계속 이런식으로 느리면 속이 터져 죽을것 같아 개선해 보기로 하였습니다.
+&lt;/p&gt;
+&lt;p&gt;
+현재 index 페이지에는 게시글과 상품을 카테고리별로 card 형태의 swiper-slide로 보여주고 있습니다.&lt;br&gt;
+한 눈에 봐도 가져오는 데이터가 많아 보였습니다.&lt;br&gt;
+&lt;br&gt;
+코드를 보면서 제 나름대로 원인을 생각한 결과는 다음과 같습니다.&lt;br&gt;
+&lt;ol&gt;
+&lt;li&gt;쿼리 속도가 느리다.&lt;/li&gt;
+&lt;li&gt;장고 템플릿 내부에서 for문이 많다.&lt;/li&gt;
+&lt;li&gt;이미지의 크기가 크다&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;하나씩 해결해보도록 하겠습니다.&lt;/p&gt;
+ &lt;/p&gt;
+&lt;h3&gt;쿼리 속도가 느리다.&lt;/h3&gt;
+&lt;p&gt;제일 먼저 index 페이지의 쿼리 속도를 측정해보았습니다.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Number of Queries : 507&lt;br&gt;
+Finished in : 8.52s&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;쿼리 호출 수가 507.. 무려 8초나 걸리는 것을 볼 수 있습니다. &lt;br&gt;
+우선 쿼리 호출 수 부터 줄이는 것을 목표로 구글링을 해보았습니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;django에는 Queryset이라는 것이 존재하는데 이것은 세가지의 특징이 있습니다.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Lazy Loading&lt;/li&gt;
+&lt;li&gt;Caching&lt;/li&gt;
+&lt;li&gt;Eager Loading&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;간단히 설명하면&lt;br&gt;
+Lazy Loading - 코드 한줄 한줄마다 쿼리를 호출하는 것이 아닌 모든 처리가 끝난 후에 종합하여 실행하는 개념&lt;br&gt;
+Eager Loading - Lazy Loading에 반대되는 개념으로 Lazy Loading에서 생기는 N + 1 문제를 해결하기 위해 사용하는 방법 &lt;br&gt;
+Caching - 쿼리셋을 재사용하여 쿼리 숫자를 줄일 수 있는 방법&lt;br&gt;
+이것을 잘 활용하는 것이 성능 측면에서 중요하다고 합니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;이제 작성되어 있는 index 페이지의 백엔드 코드를 살펴보면&lt;br&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token operator&quot;&gt;//&lt;/span&gt;예시 코드이며 실제 코드와는 다릅니다&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;
+
+sell_posts &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; Post&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;objects&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;post_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;PostType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;SELL&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&amp;amp;&lt;/span&gt; Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+buy_posts &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; Post&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;objects&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;post_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;PostType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;BUY&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&amp;amp;&lt;/span&gt; Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+header_banners &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; Banner&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;objects&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;banner_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;BannerType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;HEADER&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&amp;amp;&lt;/span&gt; Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+footer_banners &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; Banner&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;objects&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;banner_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;BannerType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;FOOTER&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&amp;amp;&lt;/span&gt; Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;some code&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;위와 같이 되어있었습니다.&lt;br&gt;
+위의 3가지 특징을 잘 활용하여 변경을 해보도록 하겠습니다.&lt;br&gt;
+&lt;br&gt;
+제일 먼저 비슷한 쿼리셋이 눈에 띄는데, 이것들을 변수에 담아서 재사용 해보도록 하겠습니다.&lt;br&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token operator&quot;&gt;//&lt;/span&gt;예시 코드이며 실제 코드와는 다릅니다&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;
+
+posts_queryset &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; Post&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+sell_posts &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; posts_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;post_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;PostType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;SELL&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+buy_posts &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; posts_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;post_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;PostType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;BUY&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+banner_queryset &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; Banner&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;objects&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+header_banners &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; banner_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;banner_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;BannerType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;HEADER&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+footer_banners &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; banner_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;banner_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;BannerType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;FOOTER&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;some code&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;이런식으로 전부 변경 후 다시 측정해보았습니다.&lt;br&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Number of Queries : 507&lt;br&gt;
+Finished in : 8.91s&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;…?&lt;br&gt;
+조금이라도 줄어들 줄 알았는데 하나도 변한게 없네요..&lt;br&gt;
+제가 뭔가 잘못 이해하고 있는걸까요?&lt;br&gt;
+변수에 저장을 하더라도 다른 Filter를 사용하면 새로 호출하는 것 같습니다.. &lt;br&gt;
+자세한 내용은 추후 더 공부해보아야 할 것 같아요 &lt;br&gt;
+&lt;br&gt;
+그 다음에 보이는 문제점은 &lt;br&gt;
+post에는 author라는 외래키를 가지고 있고, 다대다 관계에 있는 데이터도 있습니다.&lt;br&gt;
+예시코드에는 나와있지 않지만 상품에도 다양한 외래키와 다대다 관계가 있습니다.&lt;br&gt;
+&lt;br&gt;
+쿼리셋의 특징 중 하나인 Lazy Loading은 모든 명령을 종합하여 마지막에 실행 하기 때문에 중복되는 쿼리 호출을 막아주는 장점이 있지만,&lt;br&gt;
+단점은 외래키, 다대 다 관계에 있는 데이터들을 호출할 때 그 갯수만큼 쿼리를 호출하는 N + 1 문제가 발생하는 것 입니다.&lt;br&gt;
+예를들어 post 100개를 가져오면 각 post의 외래키 관계인 author도 조회를 해야 하므로 100개의 쿼리를 추가로 호출하게 되고 이는 성능을 저하시킵니다. &lt;br&gt;
+&lt;br&gt;
+이 문제를 해결하기 위해 Eager Loading이라는 방법이 있습니다.&lt;br&gt;
+사전에 미리 필요한 데이터를 가져오는 방식인데, 장고에서는 select_related와 prefetch_related 라는 메소드로 구현해두었습니다.&lt;br&gt;
+&lt;a href=&quot;https://docs.djangoproject.com/en/4.0/ref/models/querysets/#select-related&quot;&gt;select_related&lt;/a&gt; 와 &lt;a href=&quot;https://docs.djangoproject.com/en/4.0/ref/models/querysets/#prefetch-related&quot;&gt;prefetch_related&lt;/a&gt;의 차이는 공식문서로~&lt;/p&gt;
+&lt;br&gt;
+select_related 와 prefetch_related를 사용하여 코드를 변경해보겠습니다.
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token operator&quot;&gt;//&lt;/span&gt;예시 코드이며 실제 코드와는 다릅니다&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;
+
+posts_queryset &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    Post&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;object&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;select_related&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;author&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;prefetch_related&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;categories&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+sell_posts &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; posts_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;post_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;PostType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;SELL&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+buy_posts &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; posts_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;post_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;PostType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;BUY&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+banner_queryset &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    Banner&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;objects
+    &lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;state&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;State&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ACTIVE&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;order_by&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;-created_at&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+header_banners &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; banner_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;banner_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;BannerType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;HEADER&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+footer_banners &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; banner_queryset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Q&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;banner_type&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;BannerType&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;FOOTER&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;some code&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;요로코롬 외래키와 관계가 있는 모델들을 전부 Eager Loading 하도록 변경하였습니다.
+그 후 다시 측정을 해보았습니다&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Number of Queries : 57&lt;br&gt;
+Finished in : 1.86s&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;와! 쿼리 수가 507개에서 57개로 눈에 띄게 줄어들었습니다.&lt;br&gt;
+8~9초가 걸리던 속도도 2초 전후로 바뀌었습니다.&lt;br&gt;
+&lt;br&gt;
+브라우저 개발자 도구 네트워크 탭에서도 눈에 띄는 변화가 생겼습니다.&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/f5bb282a6263e72b996e503396be030a/1e093/performance_after.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 12.025316455696203%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAACCAYAAABYBvyLAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAc0lEQVQI11XJyw6CMBRFUf7/xxw5g4HaEAyxarXWUkSovWxTHwMGJ9lZp7jHnsvgMA+Hi4FTsNinx47dp7OZ/vb9p98/eq5DR6lqtNas94rVYUMdzhQpJUSElJd7nvmbLEwWPsUX5Vaxaxoq01K5FuWPvAFN3pi9zT4zKQAAAABJRU5ErkJggg==&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;performance_after&quot;
+        title=&quot;performance_after&quot;
+        src=&quot;/static/f5bb282a6263e72b996e503396be030a/f058b/performance_after.png&quot;
+        srcset=&quot;/static/f5bb282a6263e72b996e503396be030a/c26ae/performance_after.png 158w,
+/static/f5bb282a6263e72b996e503396be030a/6bdcf/performance_after.png 315w,
+/static/f5bb282a6263e72b996e503396be030a/f058b/performance_after.png 630w,
+/static/f5bb282a6263e72b996e503396be030a/40601/performance_after.png 945w,
+/static/f5bb282a6263e72b996e503396be030a/78612/performance_after.png 1260w,
+/static/f5bb282a6263e72b996e503396be030a/1e093/performance_after.png 1376w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;
+&lt;small&gt;⇧ 로컬 서버(개선 후)&lt;/small&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/e3fbd67a9a71e4d51e8298ce05cd0432/5fc9a/deploy_after.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 10.126582278481013%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAACCAYAAABYBvyLAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAg0lEQVQI1yWMwQrCMBQE+///41EQeioK3lSsKD1E24jSRlJfkpeOtC4ss8xhCxc9Q/Rc2zut7TDWUj87bv2AeVse/YsQBO89SZUYAh/nmJNSwo/jsr8iiAiFxECalN3xwKYs2dYn1ubCqtlT2TNV19A7x6R5OUwhkkRQzeT87+xnqio/BHyYPCZETMgAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;deploy_after&quot;
+        title=&quot;deploy_after&quot;
+        src=&quot;/static/e3fbd67a9a71e4d51e8298ce05cd0432/f058b/deploy_after.png&quot;
+        srcset=&quot;/static/e3fbd67a9a71e4d51e8298ce05cd0432/c26ae/deploy_after.png 158w,
+/static/e3fbd67a9a71e4d51e8298ce05cd0432/6bdcf/deploy_after.png 315w,
+/static/e3fbd67a9a71e4d51e8298ce05cd0432/f058b/deploy_after.png 630w,
+/static/e3fbd67a9a71e4d51e8298ce05cd0432/40601/deploy_after.png 945w,
+/static/e3fbd67a9a71e4d51e8298ce05cd0432/78612/deploy_after.png 1260w,
+/static/e3fbd67a9a71e4d51e8298ce05cd0432/5fc9a/deploy_after.png 1648w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;
+&lt;small&gt;⇧ 현재 배포 서버(개선 후)&lt;/small&gt;&lt;/p&gt;
+&lt;p&gt;평균 15000ms ~ 15500ms&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;로컬 서버 기준 : 평균 15000ms ~ 15500ms =&gt; 평균 2500ms ~ 3500ms&lt;br&gt;
+배포 서버 기준 : 평균 3000ms ~ 3500ms =&gt; 평균 400ms ~ 500ms&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;이것으로 쿼리 속도 개선을 마쳤습니다.&lt;br&gt;
+캐싱은 왜 안된 것 인지 추가로 좀 더 쿼리를 줄일 수는 없는지 공부해 보아야 하지만 파이썬 장고를 처음 써보는 입장에서 매우 만족스럽습니다.&lt;br&gt;
+&lt;br&gt;
+원래 계획은 한 글에 다 적을 계획이였는데 생각보다 글이 길어져서 나눠 쓰도록 하겠습니다.&lt;br&gt;
+인생 살면서 이렇게 길게 글을 써본 적이 없어서 남들에게 잘 읽힐지는 모르겠습니다..ㅎㅎ&lt;br&gt;
+점점 발전하는 모습 지켜봐주세요 감사합니다.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[블로그 개요]]></title><description><![CDATA[…]]></description><link>https://paerck25.github.io/post-1/</link><guid isPermaLink="false">https://paerck25.github.io/post-1/</guid><pubDate>Sat, 29 Jan 2022 23:43:00 GMT</pubDate><content:encoded>&lt;h3&gt;블로그 작성&lt;/h3&gt;
+&lt;p&gt;여태까지는 내가 기억하면 되고, 안되면 구글링하면 되는데 굳이..?라는 생각이었습니다.&lt;br&gt;
+하지만 이전에 분명 구글링하면서 해결했던 건데 기억이 안 나고, &lt;br&gt;
+그 해결책을 어디서 봤는지도 기억이 나질 않아 다시 하나씩 뒤져야 하는 상황이 종종 생겼습니다.&lt;br&gt;
+&lt;br&gt;
+한두번 다시 찾는 것은 괜찮지만 이게 10번 100번이 되버린다면..&lt;br&gt;
+이제는 찾았던 거 또 찾지 말고 기록을 하려고 합니다.&lt;br&gt;
+&lt;br&gt;
+글쓰기를 거의 해본 적이 없어 많이 어색하지만,&lt;br&gt;
+꾸준히 노력하겠습니다.&lt;/p&gt;</content:encoded></item></channel></rss>
